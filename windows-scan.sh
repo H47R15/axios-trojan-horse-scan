@@ -272,6 +272,21 @@ scan_windows_rat_artifacts() {
         warn "Could not locate Windows C: drive mount (/c or /mnt/c)"
     fi
 
+    # Additional PowerShell check (Windows-native path resolution)
+    if command -v powershell.exe >/dev/null 2>&1; then
+        local ps_check
+        ps_check="$(powershell.exe -NoProfile -Command "if (Test-Path \"$env:PROGRAMDATA\\wt.exe\") { Write-Output 'FOUND' }" 2>/dev/null | tr -d '\r' || true)"
+
+        if [[ "$ps_check" == "FOUND" ]]; then
+            crit "PowerShell check: C:\\ProgramData\\wt.exe exists (GAME OVER)"
+            found_any=1
+        else
+            ok "PowerShell check: C:\\ProgramData\\wt.exe not found"
+        fi
+    else
+        info "powershell.exe not available — skipping Test-Path check"
+    fi
+
     if command -v powershell.exe >/dev/null 2>&1; then
         local net_out
         net_out="$(powershell.exe -NoProfile -Command "Get-NetTCPConnection -State Established -ErrorAction SilentlyContinue | Where-Object { \$_.RemoteAddress -eq '142.11.206.73' } | Select-Object LocalAddress,LocalPort,RemoteAddress,RemotePort,State | Format-Table -HideTableHeaders" 2>/dev/null | tr -d '\r' || true)"
